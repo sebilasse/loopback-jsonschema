@@ -57,7 +57,28 @@ loopbackJsonSchema.init = function(app, customConfig) {
 
     var db = dataSource(app);
     ItemSchema.attachTo(db);
+    db.autoupdate('item-schemas', function(err) {
+      if(err) throw err;
 
+      app.model(ItemSchema);
+      ItemSchemaHooks.initialize();
+
+      var restApiRoot = app.get('restApiRoot') || '/api';
+      var middlewares = [
+          validateRequestMiddleware(app)
+      ];
+
+      if (config.registerItemSchemaAtRequest) {
+          middlewares.push(registerLoopbackModelMiddleware(app));
+      } else {
+          // load all item schemas at boot
+          ItemSchema.preLoadModels();
+      }
+
+      app.use(restApiRoot, middlewares);
+
+    });
+    
     app.model(ItemSchema);
     ItemSchemaHooks.initialize();
 
